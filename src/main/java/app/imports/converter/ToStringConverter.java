@@ -12,6 +12,6 @@ public class ToStringConverter extends NullableStringConverter<String> {
      */
     @Override
     public String convertNotNullString(String s) {
-        return s;
+        return s.trim();
     }
 }

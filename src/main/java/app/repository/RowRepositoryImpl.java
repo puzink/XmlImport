@@ -36,7 +36,7 @@ public class RowRepositoryImpl extends AbstractRepository implements RowReposito
      */
     public int insertUniqueRows(List<Row> rows, List<Column> rowColumns,
                                 List<Column> uniqueColumns, String tableName) throws SQLException {
-        List<Row> uniqueRows = removeDuplicates(rows, tableName, uniqueColumns);
+        List<Row> uniqueRows = leaveUniques(rows, tableName, uniqueColumns);
         return insertRows(uniqueRows, rowColumns, tableName);
     }
 
@@ -64,7 +64,7 @@ public class RowRepositoryImpl extends AbstractRepository implements RowReposito
      * @param uniqueColumns - уникальные столбцы, по которым сравниваются строки
      * @return строки, уникальные по определённым столбцам
      */
-    private List<Row> removeDuplicates(List<Row> rows, String tableName, List<Column> uniqueColumns)
+    private List<Row> leaveUniques(List<Row> rows, String tableName, List<Column> uniqueColumns)
             throws SQLException {
         if(uniqueColumns.isEmpty() || rows.isEmpty()){
             return rows;
@@ -72,15 +72,17 @@ public class RowRepositoryImpl extends AbstractRepository implements RowReposito
 
         List<Boolean> isRowDuplicateInTable =
                 rowDao.hasDuplicateRow(rows, tableName, uniqueColumns);
-        Set<Row> rowsToInsert = new HashSet<>();
+        List<Row> rowsToInsert = new ArrayList<>();
+        Set<Row> uniqueKeys = new HashSet<>();
         for(int i = 0; i<rows.size();++i){
             Row rowProjection = rows.get(i).projectOnto(uniqueColumns);
-            if(!isRowDuplicateInTable.get(i)){
-                rowsToInsert.add(rowProjection);
+            if(!isRowDuplicateInTable.get(i) && !uniqueKeys.contains(rowProjection)){
+                rowsToInsert.add(rows.get(i));
+                uniqueKeys.add(rowProjection);
             }
         }
 
-        return new ArrayList<>(rowsToInsert);
+        return rowsToInsert;
     }
 }
 

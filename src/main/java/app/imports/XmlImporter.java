@@ -12,6 +12,7 @@ import app.imports.transaction.ThreadConnectionTransactionManagerImpl;
 import app.xml.Attribute;
 import app.xml.Node;
 import app.xml.XmlTableReader;
+import com.sun.source.tree.ArrayAccessTree;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -94,8 +95,8 @@ public class XmlImporter{
             throws Exception {
         ExecutorService executor = createExecutor(settings);
         ImportTableDto importTableDto = readTableInfo(tableReader);
-        List<Row> rows = readRows(settings.readRowSize, importTableDto, tableReader);
 
+        List<Row> rows = readRows(settings.readRowSize, importTableDto, tableReader);
         AtomicLong insertedRowsCount = new AtomicLong();
         long readRows = 0;
         while (!rows.isEmpty()) {
@@ -150,13 +151,12 @@ public class XmlImporter{
         List<Column> tableColumns = tableRepository.getTableColumns(tableName);
         Table table = new Table(tableName, tableColumns);
 
-        List<Column> uniqueColumns =
-                splitAttributeValue(
-                        tableNode.getElement()
-                                .getAttributeBy(Attribute.filterByName(UNIQUE_ATTRIBUTE))
-                                .get(),
-                        SEPARATOR
-                );
+        Optional<Attribute> uniqueAttr = tableNode.getElement()
+                .getAttributeBy(Attribute.filterByName(UNIQUE_ATTRIBUTE));
+        List<Column> uniqueColumns = uniqueAttr.isEmpty() || uniqueAttr.get().getValue().isBlank()
+                ? List.of()
+                : splitAttributeValue(uniqueAttr.get(), SEPARATOR);
+
         List<Column> columnsForInsert =
                 splitAttributeValue(
                         tableNode.getElement()
